@@ -12,10 +12,14 @@ from pylab import *
 from scipy.optimize import curve_fit
 from scipy.stats import gamma
 
+# TO DO!!
+#
+# 1) FITTING TO LOG TRANSFORM OF BIN COUNTS IS NOT WORKING AS  NICELY AS I HAD HOPED
+
+
 class TrapcamAnalyzer:
     def __init__(self, directory):  # <---- instances of this class will specify the directory, most likely using directory = sys.argv[1]
         self.directory = directory
-        #self.explore_cv2_parameters = explore_cv2_parameters
 
     def get_filenames(self, path, contains, does_not_contain=['~', '.pyc']):
         cmd = 'ls ' + '"' + path + '"'
@@ -193,8 +197,9 @@ class TrapcamAnalyzer:
         return neg_to_pos_z_crossing_metric
 
     def fit_data_to_bimodal(self, data, expected, ax_handle, plot_histogram):
-        y,x,_=hist(data,100,alpha=.3,color = 'black', label='data')
+        y,x,_=hist(data,100,alpha=.3,color = 'black', label='data', log = True)
 
+        y_natural_log = [np.log(count) if count > 0 else count for count in y]
         x=(x[1:]+x[:-1])/2 # for len(x)==len(y)
 
         def gauss(x,mu,sigma,A):
@@ -204,7 +209,7 @@ class TrapcamAnalyzer:
             return gauss(x,mu1,sigma1,A1)+gauss(x,mu2,sigma2,A2)
 
         try:
-            params,cov=curve_fit(bimodal,x,y,expected) # <---- NEED ERROR HANDLING HERE
+            params,cov=curve_fit(bimodal,x,y_natural_log,expected) # <---- NEED ERROR HANDLING HERE
         except RuntimeError:
             print ('optimal parameters not found')
             return None
@@ -221,19 +226,19 @@ class TrapcamAnalyzer:
         neg_to_pos_z_crossing_metric = x[neg_to_pos_z_crossing_index]
 
         if plot_histogram:
-            plot(x,bimodal(x,*params),color='black',lw=2,label='bimodal fit')
+            plot(x,np.exp(bimodal(x,*params)),color='black',lw=2,label='bimodal fit')
             scatter(neg_to_pos_z_crossing_metric, fit[neg_to_pos_z_crossing_index], color = 'black', s =40, zorder=10)
             plt.legend()
             ax_handle.spines['right'].set_visible(False)
             ax_handle.spines['top'].set_visible(False)
-            ax_handle.set_ylim(0,max(y)*1.1)
+            ax_handle.set_ylim(0,max(y)*1.3)
             ax_handle.set_xlim(0,max(x)*1.1)
             # Only show ticks on the left and bottom spines
             ax_handle.yaxis.set_ticks_position('left')
             ax_handle.xaxis.set_ticks_position('bottom')
             ax_handle.tick_params(direction='out')#, length=6, width=2, colors='r',grid_color='r', grid_alpha=0.5)
 
-        return neg_to_pos_z_crossing_metric # <---------------------------- MODIFY THIS PER ANNIE'S SUGGESTION!
+        return neg_to_pos_z_crossing_metric
 
     def fit_data_to_trimodal(self,data,expected,ax_handle,plot_histogram):
         y,x,_=hist(data,100,alpha=.3,color = 'black', label='data')
@@ -276,7 +281,7 @@ class TrapcamAnalyzer:
             ax_handle.xaxis.set_ticks_position('bottom')
             ax_handle.tick_params(direction='out')#, length=6, width=2, colors='r',grid_color='r', grid_alpha=0.5)
 
-        return neg_to_pos_z_crossing_metric 
+        return neg_to_pos_z_crossing_metric
 
     def find_contours_using_pretrained_backsub_MOG2(self,
                                                     full_image_stack,
@@ -375,8 +380,36 @@ class TrapcamAnalyzer:
 
         plt.rcParams.update({'font.size': 14}) # <--- there is probably a better place to specify this so it's more flexible, but this'll work for now
 
+################################## getting some user input #####################################################
+        print ('')
+        while True:
+            analyze_trap_list = []
+            while True:
+                letter = raw_input("Enter a(nother) trap letter to analyze, or enter 'go' to start batch analysis: ")
+                if letter == 'go':
+                    break
+                else:
+                    analyze_trap_list.append('trap_'+letter)
+            print ('you said you want to analyze: ')
+            for an_trap in analyze_trap_list:
+                print (an_trap)
+            user_go_ahead = raw_input("Are those the traps you'd like to analyze? (y/n) ")
+            if user_go_ahead == 'y':
+                break
+            if user_go_ahead == 'n':
+                continue
+        print ('')
+        calculate_threshold = False
+        thresh_or_final = raw_input("Do you want to analyze just a subset of frames to determine the best in-trap/on-trap threshold, or do you want to do the final analysis? (threshold/final) ")
+        if thresh_or_final =='threshold':
+            calculate_threshold = True
+##############################################################################################################
+
         d = analysis_parameters_json
         for key in d:
+            if key not in analyze_trap_list: # just a temporary measure
+                print ('skipping '+ key)
+                continue
             if key == 'common to all traps':
                 continue
             print ('analyzing ' +key)
@@ -434,6 +467,11 @@ class TrapcamAnalyzer:
 
             font = cv2.FONT_HERSHEY_SIMPLEX
 
+
+            if calculate_threshold:
+                expected=(15,5,100,32,5,100)
+                proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
+
             frame_pos = 0
             if analysis_params["step through frames"]:
                 while True:
@@ -455,7 +493,6 @@ class TrapcamAnalyzer:
                 #### now plotting the graph of flies over time
                     fig = plt.figure(figsize=(10,9), facecolor="white")
                     ax2 = fig.add_subplot(212)
-                    #ax2.hist(all_contrast_metrics, bins = 30)
 
                     expected=(15,5,100,32,5,100)
                     proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2,plot_histogram = True)
@@ -530,13 +567,22 @@ class TrapcamAnalyzer:
                         frame_pos = min(frame_pos,len(annotated_output_stack)-1)
             else:
                 expected=(15,5,100,32,5,100)
-                proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2, plot_histogram = False)
+                proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
 
                 # gamma_gauss_expected = (3., 5, 2, 100, 32, 5, 100)
                 # proposed_contrast_metric = self.fit_data_to_gamma_gauss_bimodal(all_contrast_metrics, gamma_gauss_expected, ax_handle = ax2,plot_histogram = False )
 ###############################################################
-            if proposed_contrast_metric is not None:
+
+            if proposed_contrast_metric.size != 0:
                 print ('proposed contrast cutoff: '+ str(proposed_contrast_metric))
+                if calculate_threshold:
+                    with open(self.directory+'/all_traps_gaussian_analysis_params.json') as f:
+                        growing_json = json.load(f)
+                    growing_json[key]['fixed in-trap on-trap threshold'] = int(round(proposed_contrast_metric[0]))
+
+                    with open(self.directory+'/all_traps_gaussian_analysis_params.json', mode = 'w') as f:
+                        json.dump(growing_json,f, indent = 4) # < ---- not sure this'll work
+
             print ('')
             # Clean up
             cv2.destroyAllWindows()

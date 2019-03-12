@@ -1,17 +1,131 @@
-{"trap_H": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":10, "camera time advanced by __ sec": 38967, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"trap_F": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":40, "camera time advanced by __ sec": 11871, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"trap_A": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":10, "camera time advanced by __ sec": 14895, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"trap_B": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":12, "camera time advanced by __ sec": 6416, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"trap_C": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":10, "camera time advanced by __ sec": 40956, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"trap_D": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":10, "camera time advanced by __ sec": 1332, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"trap_E": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":10, "camera time advanced by __ sec": -6062, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"trap_G": {"analysis parameters": {"number of frames for bg model training":25, "mahalanobis squared threshold": 16,"frames between training and test": 1, "minimum_contour_size": 10, "maximum_contour_size": 1000, "threshold to differentiate in- and on- trap": 22.7, "analyze_how_many_minutes_prior_to_release": -8, "analyze_how_many_minutes_post_release":10, "camera time advanced by __ sec": -564, "save frames as video": false, "step through frames":true},"analysis_results": []},
-
-"common to all traps": {"parameters to test": {"mahalanobis squared threshold": [10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 25], "minimum contour size": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]}}}
+{
+    "trap_B": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": 6416, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 12
+        }, 
+        "analysis_results": []
+    }, 
+    "trap_C": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": 40956, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 10
+        }, 
+        "analysis_results": []
+    }, 
+    "trap_A": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": 14895, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 10
+        }, 
+        "analysis_results": []
+    }, 
+    "trap_F": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": 11871, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 15
+        }, 
+        "analysis_results": [], 
+        "fixed in-trap on-trap threshold": 23
+    }, 
+    "trap_G": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": -564, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 10
+        }, 
+        "analysis_results": []
+    }, 
+    "trap_D": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": 1332, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 10
+        }, 
+        "analysis_results": []
+    }, 
+    "trap_E": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": -6062, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 10
+        }, 
+        "analysis_results": []
+    }, 
+    "trap_H": {
+        "analysis parameters": {
+            "minimum_contour_size": 10, 
+            "frames between training and test": 1, 
+            "step through frames": true, 
+            "mahalanobis squared threshold": 16, 
+            "threshold to differentiate in- and on- trap": 22.7, 
+            "number of frames for bg model training": 25, 
+            "save frames as video": false, 
+            "analyze_how_many_minutes_prior_to_release": -8, 
+            "camera time advanced by __ sec": 38967, 
+            "maximum_contour_size": 1000, 
+            "analyze_how_many_minutes_post_release": 20
+        }, 
+        "analysis_results": []
+    }
+}

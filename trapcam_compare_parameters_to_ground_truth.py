@@ -38,11 +38,31 @@ ground_truth_end_minutes_after_release = ground_truth_json[0]["common to all tra
 
 analyzer = trapcam_analysis.TrapcamAnalyzer(directory)
 
+################################ this is dorky but I think it'll become useful when I'm dealing with lots of data #######################################
+while True:
+    reference_trap_list = []
+    while True:
+        letter = raw_input("Enter a(nother) trap letter to analyze, or type 'go' to start batch analysis: ")
+        if letter == 'go':
+            break
+        else:
+            reference_trap_list.append('trap_'+letter)
+    print ('you said you want to analyze: ')
+    for ref_trap in reference_trap_list:
+        print (ref_trap)
+    user_go_ahead = raw_input("Are those the traps you'd like to analyze? (y/n) ")
+    if user_go_ahead == 'y':
+        break
+    if user_go_ahead == 'n':
+        continue
+##########################################################################################################################################################
+
+
 for trap_name in analysis_parameters_json: # for each trap name:
     namestr = directory+'/'+trap_name+'_on_trap_rmse.png'
-    print (namestr)
+
     plt.close('all')
-    if trap_name != 'trap_A': # this is a temporary measure for troubleshooting!!!!
+    if trap_name not in reference_trap_list: # this is a temporary measure for troubleshooting!!!!
         continue
 
     all_json_entries_for_this_trap = {} # output to populate
@@ -78,6 +98,8 @@ for trap_name in analysis_parameters_json: # for each trap name:
 
 #        using this mahal and min_cont, analyze the subset of files that had been ground-truthed
         for mahal, min_cont in unique_pairs(mahalanobis_list, minimum_contour_list):
+            print ('')
+            print ('frame %d out of %d' %( ground_truthed_filename_list.index(ground_truthed_filename), len(ground_truthed_filename_list)))
             print ("mahal: "+str(mahal))
             print ("min cont: "+str(min_cont))
             all_flies_over_time, annotated_output_stack, time_since_release_list, analyzed_filename_stack, all_contrast_metrics = analyzer.find_contours_using_pretrained_backsub_MOG2(full_image_stack = masked_images_to_analyze,
@@ -91,16 +113,15 @@ for trap_name in analysis_parameters_json: # for each trap name:
                                                                        camera_time_offset = analysis_params['camera time advanced by __ sec'],
                                                                        ontrap_intrap_threshold = analysis_params["threshold to differentiate in- and on- trap"])
 
-            #print ('analyzed: ' + str(len(all_flies_over_time[-1]['flies on trap'])))
-            #print ('scored by eye: ' + str(ground_truthed_frames_for_this_trap[ground_truthed_filename]["flies on trap"]))
+
             json_entry = { "mahalanobis squared thresh": mahal,
                             "minimum contour size": min_cont,
                             "flies in trap": len(all_flies_over_time[-1]['flies in trap']) ,
                             "flies on trap": len(all_flies_over_time[-1]['flies on trap']),
                             "non flies":     len(all_flies_over_time[-1]['not_flies']),
-                            "flies-in-trap square error": (len(all_flies_over_time[-1]['flies in trap'])  - int(ground_truthed_frames_for_this_trap[ground_truthed_filename]["flies in trap"]))**2,
-                            "flies-on-trap square error": (len(all_flies_over_time[-1]['flies on trap'])  - int(ground_truthed_frames_for_this_trap[ground_truthed_filename]["flies on trap"]))**2,
-                            "non-flies square error":     (len(all_flies_over_time[-1]['not_flies'])      - int(ground_truthed_frames_for_this_trap[ground_truthed_filename]["non flies"]))**2}
+                            #"flies-in-trap square error": (len(all_flies_over_time[-1]['flies in trap'])  - int(ground_truthed_frames_for_this_trap[ground_truthed_filename]["flies in trap"]))**2,
+                            #"non-flies square error":     (len(all_flies_over_time[-1]['not_flies'])      - int(ground_truthed_frames_for_this_trap[ground_truthed_filename]["non flies"]))**2,
+                            "flies-on-trap square error": (len(all_flies_over_time[-1]['flies on trap'])  - int(ground_truthed_frames_for_this_trap[ground_truthed_filename]["flies on trap"]))**2}
             all_json_entries_for_this_filename[(mahal,min_cont)] = json_entry
         all_json_entries_for_this_trap[ground_truthed_filename] = all_json_entries_for_this_filename
     print (all_json_entries_for_this_trap)
@@ -127,20 +148,19 @@ for trap_name in analysis_parameters_json: # for each trap name:
     for tuple_key in on_trap_squared_error_sum_dict:
         mahal_idx = np.where(np.array(mahalanobis_list) ==tuple_key[0])[0][0]
         min_idx = np.where(np.array(minimum_contour_list) == tuple_key[1])[0][0]
-        trap_rmse_array[mahal_idx][min_idx] = np.sqrt(on_trap_squared_error_sum_dict[tuple_key])
+        trap_rmse_array[mahal_idx][min_idx] = np.sqrt(on_trap_squared_error_sum_dict[tuple_key])/np.sqrt(len(all_json_entries_for_this_trap))
 
     print (trap_rmse_array)
 
     fig = plt.figure(figsize=(8,8), facecolor="white")
     ax = fig.add_subplot(111)
-    # plt.imshow(trap_error_sum_array, cmap='hot', interpolation='nearest')
-    # plt.show()
-    ax = sns.heatmap(trap_rmse_array, linewidth =0.5, cmap = 'viridis', xticklabels=[str(x)for x in mahalanobis_list ], yticklabels= [str(x)for x in minimum_contour_list], vmax = np.percentile(trap_rmse_array,85))
+    ax = sns.heatmap(trap_rmse_array, linewidth =0.5, cmap = 'viridis', yticklabels=[str(x)for x in mahalanobis_list ], xticklabels= [str(x)for x in minimum_contour_list], vmax = np.percentile(trap_rmse_array,85))
 
-    plt.xlabel('mahalanobis')
-    plt.ylabel('minimum contour size')
+    plt.ylabel('sq mahalanobis distance threshold')
+    plt.xlabel('minimum fly contour size')
+    plt.title(trap_name)
     ax.collections[0].colorbar.set_label("on-trap count RMSE")
-    namestr = directory+'/'+trap_name+'_on_trap_rmse_2.png'
+    namestr = directory+'/ground_truth_rmse_figs/'+trap_name+'_on_trap_rmse_'+str(len(ground_truthed_filename_list))+'_gt_frames.png'
     plt.savefig(namestr, bbox_inches='tight')
     plt.show()
 

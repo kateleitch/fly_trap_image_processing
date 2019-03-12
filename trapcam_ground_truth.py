@@ -72,54 +72,60 @@ def get_time_since_release_from_filename (release_time='', name = '', offset = 0
     return time_elapsed
 
 def show_image_as_it_is_being_scored(image, request_str, request_index, response_str, wait_int):
-    display_img = cv2.putText(image, request_str+response_str, (0,30+40*request_index), font, 0.5, (255,255,255),1, cv2.LINE_AA)
-    cv2.imshow("image", display_img)
+    image_copy = cv2.putText(image, request_str+':  '+response_str, (0,30+40*request_index), font, 0.5, (255,255,255),1, cv2.LINE_AA)
+    cv2.imshow("image", image_copy)
     wait_key_val = cv2.waitKey(wait_int) & 0xFF
     if wait_key_val == ord('q'):
         return 'break'
     if wait_key_val == ord('b'): # user wants to step backwards
         return 'step back'
-    if wait_key_val == ord('f'): # user is ready to jump to next frame
-        return 'step forward'
+
     try:
-        count = int(chr(int(wait_key_val)))
+        tens_place = int(chr(int(wait_key_val)))
+        wait_key_val_2 = cv2.waitKey(wait_int) & 0xff
+        if wait_key_val_2 == ord('q'):
+            return 'break'
+        if wait_key_val_2 == ord('b'): # user wants to step backwards
+            return 'step back'
+        try:
+            ones_place = int(chr(int(wait_key_val_2)))
+        except:
+            return 'other key pressed'
+
+        count = 10*tens_place + ones_place
         return count
     except:
         return 'other key pressed'
 
-def score_images_manually(filename, square_mask):
-    img = load_color_image(filename)
-    if img is None:
-        print ('img is None!')
-    else:
-        masked_image=(cv2.bitwise_and(img,img,mask = square_mask))
-    masked_image_resized = cv2.resize(masked_image, (1296,972)) #halves image dimensions just for display purposes
-    request_list = ['Number of flies ON trap: ', 'Number of flies IN trap: ', 'Number of non-Drosophila: ', 'press any number for next frame ']
+def score_images_manually(im, request_list):
     response_list = []
     for (i, request_str) in enumerate(request_list):
-        ret = show_image_as_it_is_being_scored(image= masked_image_resized, request_str = request_str, request_index = i, response_str = '', wait_int = 0)
+        ret = show_image_as_it_is_being_scored(image= im, request_str = request_str, request_index = i, response_str = '', wait_int = 0)
         if ret == 'break':
             return ret
         elif ret == 'step back':
-            return ret
-        elif ret == 'step forward':
             return ret
         elif ret == 'other key pressed':
             return ret
         else:
             response = str(ret)
             response_list.append(response)
-            if len(response_list)>3:
+            if len(response_list)>(len(request_list)-1): #if the user has answered all the questions in the request list, then...
                 return response_list
-            ret = show_image_as_it_is_being_scored(image= masked_image_resized, request_str = request_str, request_index = i, response_str = response, wait_int =1)
+            ret = show_image_as_it_is_being_scored(image= im, request_str = request_str, request_index = i, response_str = response, wait_int =1)
 
 ####################################################################################33
 params = ground_truth_json[0]["common to all traps"]
 frame_sel_params = params["frame selection parameters"]
+trap_to_ground_truth = 'trap_'+raw_input("Enter letter of trap to ground-truth: ")
+
+request_list = ['flies on trap', 'press any number for next frame '] # <----- likely to be invariant; this specifies what the ground-truthing person should be looking for.
+#request_list = ['flies on trap', 'flies in trap', 'non flies', 'press any number for next frame ']
 
 for trap_name in analysis_parameters_json: # for each trap name:
-    if trap_name != 'trap_A':
+    if trap_name != trap_to_ground_truth:
         continue
+
     all_json_entries_for_this_trap = {}
     analysis_params = analysis_parameters_json[trap_name]["analysis parameters"]
     print ('analyzing ' +trap_name)
@@ -160,62 +166,52 @@ for trap_name in analysis_parameters_json: # for each trap name:
 
     all_filenames_to_score = all_pre_filenames_to_score + all_post_filenames_to_score
     random.shuffle(all_filenames_to_score)
+    ### kjl edit 10 March 2019
+    all_filenames_to_score =  [item for sublist in all_filenames_to_score for item in sublist] #flattening list
+    all_images_to_score = [load_color_image(x) for x in all_filenames_to_score]
+    all_masked_images_to_score =[cv2.resize(cv2.bitwise_and(img,img,mask = square_mask), (1296,972)) for img in all_images_to_score]
 
     ######################################  now entering loop for displaying images and scoring ################################################
-    break_toggle =0
-    chunk_index = 0
+
     save_data_for_this_trap = True
+    frame_pos = 0
     while True:
-        if break_toggle == 1:
-            save_data_for_this_trap = False
+        if frame_pos < 0:
+            print ('index '+str(frame_pos)+ ' is out of range!')
             break
         try:
-            consecutive_chunk = all_filenames_to_score[chunk_index]
+            current_image_orig = all_masked_images_to_score[frame_pos]
+            current_image = current_image_orig.copy()
+            f = all_filenames_to_score[frame_pos]
         except:
+            print ('index '+str(frame_pos)+ ' is out of range!')
             break
-        consec_frame_list = []
-        for f in consecutive_chunk:
-            ret = score_images_manually(filename= f, square_mask= square_mask)
-            if ret == 'break':
-                break_toggle = 1
-                break
-            if ret == 'step back':
-                print ('stepping back')
-                chunk_index += -1
-                if len(consec_frame_list) >0:
-                    #del all_json_entries_for_this_trap[-1*consec_frame_count:]
-                    for filename in consec_frame_list:
-                        del all_json_entries_for_this_trap[filename]
-                break
-            if ret == 'other key pressed':
-                print ('non-integer key pressed; stepping back')
-                chunk_index += -1
-                if len(consec_frame_list) >0:
-                    #del all_json_entries_for_this_trap[-1*consec_frame_count:]
-                    for filename in consec_frame_list:
-                        del all_json_entries_for_this_trap[filename]
-                break
-            else:
-                print ()
-                print (ret[0])
-                print (ret[1])
-                print (ret[2])
 
-                # aDict = {}
-                # aDict[key] = value
-                #
-                # json_entry = {"filename": f,
-                #                 "time since release": get_time_since_release_from_filename(release_time = field_parameters["time_of_fly_release"], name = f, offset = analysis_params["camera time advanced by __ sec"]),
-                #                 "flies on trap": ret[0],
-                #                 "flies in trap": ret[1],
-                #                 "non flies": ret[2]}
+        ret = score_images_manually(current_image, request_list)
+        if ret == 'break':
+            break
+        if ret == 'step back':
+            print ('stepping back')
+            frame_pos += -1
+            del all_json_entries_for_this_trap[all_filenames_to_score[all_filenames_to_score.index(f) -1]] #delete the previous entry
+            continue
+        if ret == 'other key pressed':
+            print ('non-integer key pressed; stepping back')
+            frame_pos += -1
+            del all_json_entries_for_this_trap[all_filenames_to_score[all_filenames_to_score.index(f) -1]] #delete the previous entry ["foo", "bar", "baz"].index("bar")
+            continue
+        else:
+            print ('')
+            for response in ret:
+                print response
 
-                all_json_entries_for_this_trap[f] = {"time since release": get_time_since_release_from_filename(release_time = field_parameters["time_of_fly_release"], name = f, offset = analysis_params["camera time advanced by __ sec"]),
-                                                    "flies on trap": ret[0],
-                                                    "flies in trap": ret[1],
-                                                    "non flies": ret[2]}
-                consec_frame_list.append(f)
-        chunk_index += 1
+            response_dict = {request_list[i]:ret[i] for i in range(len(ret)-1)}
+            time_dict = {"time since release": get_time_since_release_from_filename(release_time = field_parameters["time_of_fly_release"], name = f, offset = analysis_params["camera time advanced by __ sec"])}
+            response_dict.update(time_dict)
+            all_json_entries_for_this_trap[f] = response_dict
+
+            frame_pos += 1
+
     cv2.destroyAllWindows()
     print (trap_name)
     print (len(all_json_entries_for_this_trap)) # a dictionary of dictionaries, with one dictionary per frame, keyed by
