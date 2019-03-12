@@ -12,11 +12,6 @@ from pylab import *
 from scipy.optimize import curve_fit
 from scipy.stats import gamma
 
-# TO DO!!
-#
-# 1) FITTING TO LOG TRANSFORM OF BIN COUNTS IS NOT WORKING AS  NICELY AS I HAD HOPED
-
-
 class TrapcamAnalyzer:
     def __init__(self, directory):  # <---- instances of this class will specify the directory, most likely using directory = sys.argv[1]
         self.directory = directory
@@ -384,12 +379,14 @@ class TrapcamAnalyzer:
         print ('')
         while True:
             analyze_trap_list = []
+            letter = raw_input("Enter a trap letter to analyze: ")
             while True:
-                letter = raw_input("Enter a(nother) trap letter to analyze, or enter 'go' to start batch analysis: ")
+                letter = raw_input("Enter another trap letter to analyze, or enter 'go' to start batch analysis: ")
                 if letter == 'go':
                     break
                 else:
                     analyze_trap_list.append('trap_'+letter)
+            print ('')
             print ('you said you want to analyze: ')
             for an_trap in analyze_trap_list:
                 print (an_trap)
@@ -404,6 +401,8 @@ class TrapcamAnalyzer:
         if thresh_or_final =='threshold':
             calculate_threshold = True
 ##############################################################################################################
+
+        trimodal_expected =(15,5,100, 20,5,20, 32,5,100)
 
         d = analysis_parameters_json
         for key in d:
@@ -420,7 +419,7 @@ class TrapcamAnalyzer:
             filename_list = []
 
             full_filename_list = self.get_filenames(path = timelapse_directory, contains = "tl", does_not_contain = ['th']) #  full list of image filenames in the folder
-            print ('length of full filename List: ' +str(len(full_filename_list)))
+
             for filename in full_filename_list:
                 time_since_release = self.get_time_since_release_from_filename(release_time = field_parameters["time_of_fly_release"], name = filename, offset =
                 analysis_params["camera time advanced by __ sec"])
@@ -469,8 +468,12 @@ class TrapcamAnalyzer:
 
 
             if calculate_threshold:
-                expected=(15,5,100,32,5,100)
-                proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
+                # expected=(15,5,100,32,5,100)
+                # proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
+
+
+                proposed_contrast_metric = self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = None, plot_histogram = False)
+
 
             frame_pos = 0
             if analysis_params["step through frames"]:
@@ -494,8 +497,11 @@ class TrapcamAnalyzer:
                     fig = plt.figure(figsize=(10,9), facecolor="white")
                     ax2 = fig.add_subplot(212)
 
+                    # expected=(15,5,100,32,5,100)
+                    # proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2,plot_histogram = True)
+
                     expected=(15,5,100,32,5,100)
-                    proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2,plot_histogram = True)
+                    proposed_contrast_metric = self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = ax2,plot_histogram = True)
 
                     # gamma_gauss_expected = (3., 5, 2, 100, 32, 5, 100)
                     # proposed_contrast_metric = self.fit_data_to_gamma_gauss_bimodal(all_contrast_metrics, gamma_gauss_expected, ax_handle = ax2,plot_histogram = True )
@@ -566,8 +572,11 @@ class TrapcamAnalyzer:
                         frame_pos = max(frame_pos,0)
                         frame_pos = min(frame_pos,len(annotated_output_stack)-1)
             else:
+                # expected=(15,5,100,32,5,100)
+                # proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
+
                 expected=(15,5,100,32,5,100)
-                proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
+                proposed_contrast_metric = self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = None, plot_histogram = False)
 
                 # gamma_gauss_expected = (3., 5, 2, 100, 32, 5, 100)
                 # proposed_contrast_metric = self.fit_data_to_gamma_gauss_bimodal(all_contrast_metrics, gamma_gauss_expected, ax_handle = ax2,plot_histogram = False )
@@ -609,8 +618,13 @@ class TrapcamAnalyzer:
                     fig = plt.figure(figsize=(10,9), facecolor="white")
                     ax2 = fig.add_subplot(212)
                     #ax2.hist(all_contrast_metrics, bins = 30)
+
+                    # expected=(15,5,100,32,5,100)
+                    # self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2)
+
                     expected=(15,5,100,32,5,100)
-                    self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2)
+                    self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = ax2)
+
                     plt.xlabel('contrast metric (per-pixel fg-bg; avg per contour)')
                     plt.ylabel('count')
                     ax = fig.add_subplot(211)
