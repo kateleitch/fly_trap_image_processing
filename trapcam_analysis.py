@@ -380,6 +380,7 @@ class TrapcamAnalyzer:
         while True:
             analyze_trap_list = []
             letter = raw_input("Enter a trap letter to analyze: ")
+            analyze_trap_list.append('trap_'+letter)
             while True:
                 letter = raw_input("Enter another trap letter to analyze, or enter 'go' to start batch analysis: ")
                 if letter == 'go':
@@ -397,9 +398,12 @@ class TrapcamAnalyzer:
                 continue
         print ('')
         calculate_threshold = False
+        calculate_final = False
         thresh_or_final = raw_input("Do you want to analyze just a subset of frames to determine the best in-trap/on-trap threshold, or do you want to do the final analysis? (threshold/final) ")
         if thresh_or_final =='threshold':
             calculate_threshold = True
+        if thresh_or_final == 'final':
+            calculate_final = True
 ##############################################################################################################
 
         trimodal_expected =(15,5,100, 20,5,20, 32,5,100)
@@ -435,6 +439,19 @@ class TrapcamAnalyzer:
                     masked_image_stack.append(cv2.bitwise_and(img,img,mask = square_mask))
                     filename_list.append(filename)
 
+            if calculate_final == True:
+                try:
+                    on_in_thresh = analysis_parameters_json[key]["fixed in-trap on-trap threshold"]
+                except:
+                    use_provisional_value =raw_input('Looks like you have not yet fixed the in-trap/on-trap threshold; use provisional threshold? (y/n)')
+                    if use_provisional_value:
+                        on_in_thresh = analysis_params["threshold to differentiate in- and on- trap"]
+                    else:
+                        print ('OK, skipping '+ key+' for now')
+                        print ('')
+                        continue
+            else:
+                on_in_thresh = analysis_params["threshold to differentiate in- and on- trap"]
             all_flies_over_time, annotated_output_stack, time_since_release_list, analyzed_filename_stack, all_contrast_metrics = self.find_contours_using_pretrained_backsub_MOG2(full_image_stack = masked_image_stack,
                                                                        filename_stack = filename_list,
                                                                        train_num = analysis_params['number of frames for bg model training'],
@@ -444,7 +461,7 @@ class TrapcamAnalyzer:
                                                                        maximum_contour_size = analysis_params['maximum_contour_size'],
                                                                        time_of_fly_release = field_parameters["time_of_fly_release"],
                                                                        camera_time_offset = analysis_params['camera time advanced by __ sec'],
-                                                                       ontrap_intrap_threshold = analysis_params["threshold to differentiate in- and on- trap"])
+                                                                       ontrap_intrap_threshold = on_in_thresh)
             ########### NOW TO STEP THROUGH FRAMES IN OUTPUTSTACK
             flies_on_trap_over_time = []
             flies_in_trap_over_time = []
@@ -455,6 +472,53 @@ class TrapcamAnalyzer:
                 flies_in_trap_over_time.append(len(i['flies in trap']))
                 not_flies_over_time.append(len(i['not_flies']))
                 seconds_since_release_over_time.append(i['seconds since release'])
+
+
+            if calculate_final == True:
+                current_trap_dictionary = {key:{'flies on trap over time:': flies_on_trap_over_time,
+                                                'flies in trap over time:': flies_in_trap_over_time,
+                                                'not flies over time:'    : not_flies_over_time,
+                                                'seconds since release:'  : seconds_since_release_over_time}}
+
+                with open(self.directory+'/all_traps_final_analysis_output.json') as f:
+                    growing_json = json.load(f)
+                #add current trap dictionary to growing_json
+                growing_json.update(current_trap_dictionary) #CAREFUL; THIS WILL OVERWRITE ANY KEYS THAT ALREADY EXIST IN THE JSON
+                with open(self.directory+'/all_traps_final_analysis_output.json', mode = 'w') as f:
+                    json.dump(growing_json,f, indent = 1)
+
+                low_pass_flies_on_trap = []
+                low_pass_flies_in_trap = []
+                window_size = 10
+                for i in range (window_size, len(flies_on_trap_over_time)):
+                    low_pass_flies_on_trap.append(int(np.mean(flies_on_trap_over_time[i-window_size:i])))
+                    low_pass_flies_in_trap.append(int(np.mean(flies_in_trap_over_time[i-window_size:i])))
+                #now, saving a lil svg file of the flies over time:
+                fig = plt.figure(figsize=(10,5), facecolor="white")
+                ax = fig.add_subplot(111)
+                ax.scatter(seconds_since_release_over_time, flies_in_trap_over_time, color = [0.6,0,0.6])
+                ax.plot(seconds_since_release_over_time[window_size:], low_pass_flies_in_trap, color = [0.6,0,0.6], lw = 2, label = 'in trap')
+                ax.scatter(seconds_since_release_over_time, flies_on_trap_over_time, color = 'black')
+                ax.plot(seconds_since_release_over_time[window_size:], low_pass_flies_on_trap, color = 'black', lw =2, label = 'on trap')
+                ax.spines['right'].set_visible(False)
+                ax.spines['top'].set_visible(False)
+                ax.tick_params(direction='out')
+                # Only show ticks on the left and bottom spines
+                ax.yaxis.set_ticks_position('left')
+                ax.xaxis.set_ticks_position('bottom')
+                #ax.scatter(seconds_since_release_over_time, not_flies_over_time, color = 'blue')
+                legend = ax.legend(loc='upper left', shadow=False) #, fontsize='x-large')
+                #ax.axvline(x = time_since_release, color = 'black', lw =2)
+                plt.xlabel('seconds since release')
+                plt.ylabel('flies in frame')
+                plt.tight_layout()
+
+                time_string = str(time.time()).split('.')[0] # this is not very human readable but helps prevent overwriting
+                namestr = self.directory+'/arrival_dynamics_figs/'+key+'_flies_over_time_'+time_string+'.svg'
+                plt.savefig(namestr, bbox_inches='tight')
+                pngnamestr = self.directory+'/arrival_dynamics_figs/'+key+'_flies_over_time_'+time_string+'.png'
+                plt.savefig(pngnamestr, bbox_inches='tight')
+                continue
 
             # doing a sort of low-pass filter on the data just for plotting purposes
             low_pass_flies_on_trap = []
@@ -470,10 +534,7 @@ class TrapcamAnalyzer:
             if calculate_threshold:
                 # expected=(15,5,100,32,5,100)
                 # proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
-
-
                 proposed_contrast_metric = self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = None, plot_histogram = False)
-
 
             frame_pos = 0
             if analysis_params["step through frames"]:
@@ -500,7 +561,6 @@ class TrapcamAnalyzer:
                     # expected=(15,5,100,32,5,100)
                     # proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2,plot_histogram = True)
 
-                    expected=(15,5,100,32,5,100)
                     proposed_contrast_metric = self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = ax2,plot_histogram = True)
 
                     # gamma_gauss_expected = (3., 5, 2, 100, 32, 5, 100)
@@ -575,22 +635,21 @@ class TrapcamAnalyzer:
                 # expected=(15,5,100,32,5,100)
                 # proposed_contrast_metric = self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = None, plot_histogram = False)
 
-                expected=(15,5,100,32,5,100)
                 proposed_contrast_metric = self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = None, plot_histogram = False)
 
                 # gamma_gauss_expected = (3., 5, 2, 100, 32, 5, 100)
                 # proposed_contrast_metric = self.fit_data_to_gamma_gauss_bimodal(all_contrast_metrics, gamma_gauss_expected, ax_handle = ax2,plot_histogram = False )
 ###############################################################
+            if proposed_contrast_metric is not None:
+                if proposed_contrast_metric.size != 0:
+                    print ('proposed contrast cutoff: '+ str(proposed_contrast_metric))
+                    if calculate_threshold:
+                        with open(self.directory+'/all_traps_gaussian_analysis_params.json') as f:
+                            growing_json = json.load(f)
+                        growing_json[key]['fixed in-trap on-trap threshold'] = int(round(proposed_contrast_metric[0]))
 
-            if proposed_contrast_metric.size != 0:
-                print ('proposed contrast cutoff: '+ str(proposed_contrast_metric))
-                if calculate_threshold:
-                    with open(self.directory+'/all_traps_gaussian_analysis_params.json') as f:
-                        growing_json = json.load(f)
-                    growing_json[key]['fixed in-trap on-trap threshold'] = int(round(proposed_contrast_metric[0]))
-
-                    with open(self.directory+'/all_traps_gaussian_analysis_params.json', mode = 'w') as f:
-                        json.dump(growing_json,f, indent = 4) # < ---- not sure this'll work
+                        with open(self.directory+'/all_traps_gaussian_analysis_params.json', mode = 'w') as f:
+                            json.dump(growing_json,f, indent = 4)
 
             print ('')
             # Clean up
@@ -622,8 +681,7 @@ class TrapcamAnalyzer:
                     # expected=(15,5,100,32,5,100)
                     # self.fit_data_to_bimodal(all_contrast_metrics, expected, ax_handle = ax2)
 
-                    expected=(15,5,100,32,5,100)
-                    self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = ax2)
+                    self.fit_data_to_trimodal(all_contrast_metrics, trimodal_expected, ax_handle = ax2, plot_histogram=True)
 
                     plt.xlabel('contrast metric (per-pixel fg-bg; avg per contour)')
                     plt.ylabel('count')

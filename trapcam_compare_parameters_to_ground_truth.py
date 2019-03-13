@@ -160,9 +160,10 @@ for trap_name in analysis_parameters_json: # for each trap name:
     plt.xlabel('minimum fly contour size')
     plt.title(trap_name)
     ax.collections[0].colorbar.set_label("on-trap count RMSE")
-    namestr = directory+'/ground_truth_rmse_figs/'+trap_name+'_on_trap_rmse_'+str(len(ground_truthed_filename_list))+'_gt_frames.png'
+    time_string = str(time.time())
+    namestr = directory+'/ground_truth_rmse_figs/'+trap_name+'_on_trap_rmse_'+str(len(ground_truthed_filename_list))+'_gt_frames'+time_string+'.png'
     plt.savefig(namestr, bbox_inches='tight')
-    plt.show()
+    #plt.show()
 
 # 6. for all traps, generate 2 heat maps of RMSEs -- one for in-trap counts, one for on-trap counts.
 # 7. by eye, look at all heat maps and decide for each trap what parameter pair minimizes error relative to ground truth; prioritize minimization of ON-TRAP error
