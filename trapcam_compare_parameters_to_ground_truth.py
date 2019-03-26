@@ -13,6 +13,7 @@ import random
 import trapcam_analysis as trapcam_analysis
 import seaborn as sns
 
+
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 def unique_pairs(list1, list2):
@@ -38,7 +39,7 @@ ground_truth_end_minutes_after_release = ground_truth_json[0]["common to all tra
 
 analyzer = trapcam_analysis.TrapcamAnalyzer(directory)
 
-################################ this is dorky but I think it'll become useful when I'm dealing with lots of data #######################################
+################################                user input to determine which traps to analyze           #######################################
 while True:
     reference_trap_list = []
     while True:
@@ -93,9 +94,10 @@ for trap_name in analysis_parameters_json: # for each trap name:
         all_json_entries_for_this_filename = {}
 
         full_filename_index = np.where(np.array(full_filename_list) == ground_truthed_filename)[0][0]
-        sublist_to_analyze= (full_filename_list[full_filename_index-(train_num + buffer_btw_training_and_test+1):full_filename_index+1])
+        sublist_to_analyze= (full_filename_list[full_filename_index-(train_num + buffer_btw_training_and_test):full_filename_index+1])
+        #sublist_to_analyze= (full_filename_list[full_filename_index-(train_num + buffer_btw_training_and_test+1):full_filename_index+1])# < --- here's my issue. off by one I suspect
         masked_images_to_analyze = [cv2.bitwise_and(analyzer.load_color_image(i),analyzer.load_color_image(i), mask = square_mask) for i in sublist_to_analyze]
-
+        print (len(masked_images_to_analyze))
 #        using this mahal and min_cont, analyze the subset of files that had been ground-truthed
         for mahal, min_cont in unique_pairs(mahalanobis_list, minimum_contour_list):
             print ('')
